@@ -1,16 +1,19 @@
 from flask import Flask, request, jsonify
+from flask_migrate import migrate
 from config import Config
-from extensions import db, make_celery
+from extensions import db, make_celery, migrate
 from models import User, Post
 import redis
 import logging
 import time
 import psutil
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
+migrate.init_app(app, db)
 r = redis.Redis.from_url(app.config["REDIS_URL"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
