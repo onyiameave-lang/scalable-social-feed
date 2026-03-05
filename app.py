@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_migrate import migrate
 from config import Config
 from extensions import db, make_celery, migrate
-from models import User, Post
+from models import User, Post, Follow
 import redis
 import logging
 import time
@@ -48,18 +48,37 @@ def create_post():
        return jsonify({"message": "Post created"}), 201
 
 @app.route("/feed/<int:user_id>")
-def get_feed(user_id):
-    cached = r.get(f"user_feed: {user_id}")
-
+@jwt_required
+def get_feed():
+    current_user_id = get_jwt_identity 
+    cached_key =f"user_feed:{current_user_id}"
+    
+    # Check redis first
+    cached = r.get(cache_key)
     if cached:
         logger.info("Cache hit")
-        return cached
+        return cached, 200
     
     logger.info("Cache miss")
     
-    posts = Post.query.filter_by(user_id =user_id).all()
+    # Get users this user follows
+    following = db.session.query(Follow.followed_id).filter_by(follower_id=current_user_id).all()
+    following_ids = [f[0] for f in following]
+    
+    if not following_ids:
+       return jsonify([])
+
+    # Get postsfrom followed users
+    posts =(
+      Post.query
+      .filter(Post.user_id.in_(following_ids))
+      .order_by(Post.id.desc())
+      .limit(20)
+      .all()
+    )
+    
     results = [{"id": p.id, "content": p.content} for p in posts]
-    r.setex(f"user_feed: {user_id}", 60, jsonify(results).get_data())
+    r.setex(cache_key, 60, jsonify(results).get_data())
     return jsonify(results)
 
 @app.route("/metrics")
