@@ -59,3 +59,6 @@ def create_followers(users):
 
     db.session.commit()
     print("Network simulation complete")
+
+if __name__ == "__main__":
+    app.run(debug=True)

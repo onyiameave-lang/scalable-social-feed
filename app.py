@@ -1,3 +1,4 @@
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import Flask, request, jsonify
 from flask_migrate import migrate
 from config import Config
@@ -31,6 +32,46 @@ def log_request(response):
         "duration_ms": round(duration * 1000, 2),
     })
     return response 
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+
+    username = data.get("username")
+    password = data.get("password")
+
+    user = User.query.filter_by(username=username).first()
+
+    if user and user.check_password(password):
+        access_token = create_access_token(identity=user.id)
+        return jsonify({"access_token": access_token}), 200
+
+    return jsonify({"msg": "Invalid username or password"}), 401
+
+
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.get_json()
+
+    username = data.get("username")
+    password = data.get("password")
+
+    # Check if user exists
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify({"msg": "Username already exists"}), 400
+
+    if not username or not password:
+        return jsonify({"msg": "Username and password required"}), 400
+
+    # Create user
+    new_user = User(username=username)
+    new_user.set_password(password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"msg": "User created successfully"}), 201
 
 @app.route("/posts", methods= ["POST"])
 def create_post():
@@ -94,3 +135,5 @@ def metrics():
 
 
 
+if __name__ == "__main__":
+    app.run(debug=True)
