@@ -106,7 +106,7 @@ def create_post():
         "post_id": post.id,
         "followers_updated": len(followers)
     }), 201
-@app.route("/feed")
+@app.route("/feed", methods=["GET"])
 @jwt_required()
 def get_feed():
     current_user_id = get_jwt_identity() 
@@ -128,7 +128,7 @@ def get_feed():
     logger.info("Cache miss")
     
     # Get users this user follows
-    following = db.session.query(Follow.followed_id).filter(Follow.follower_id==current_user_id).all()
+    following = db.session.query(Follow.following_id).filter(Follow.follower_id==current_user_id).all()
     following_ids = [f[0] for f in following]
     
     if not following_ids:
