@@ -127,30 +127,48 @@ def get_feed():
     
     logger.info("Cache miss")
     
-    # Get users this user follows
-    following = db.session.query(Follow.following_id).filter(Follow.follower_id==current_user_id).all()
-    following_ids = [f[0] for f in following]
-    
-    if not following_ids:
-       return jsonify([])
+
+    for post in posts:
+       likes = Like.query.filter_by(post_id = posts.id).count()
 
     # Get postsfrom followed users
-    posts =(
-      Post.query
-      .filter(Post.user_id.in_(following_ids))
-      .order_by(Post.id.desc())
-      .limit(20)
-      .all()
+
+    cursor = request.args.get("cursor")
+
+    query = (
+      db.session.query(Post)
+      .join(Follow, Follow.following_id == Post.user_id)
+      .filter(Follow.follower_id == user_id)
     )
-    
-    results = [{"id": p.id, "content": p.content} for p in posts]
-    response = jsonify({
-       "page" : page,
-       "total_pages" : posts.pages,
-       "posts" : results
-    })
+
+    if cursor:
+       query = query.filter(Post.created_at < cursor)
+
+    posts = (
+       query
+       .order_by(Post.created_at.desc())
+       .limit(20)
+       .all()
+    )
+
+    next_cursor = None
+
+    if posts:
+       next_cursor = posts[-1].created_at
+
     r.setex(cache_key, 60, response.get_data())
-    return response
+    return jsonify({
+    "posts": [
+        {
+            "id": p.id,
+            "content": p.content,
+            "user_id": p.user_id,
+            "created_at": p.created_at
+        }
+        for p in posts
+    ],
+    "next_cursor": next_cursor
+})
 
 @app.route("/metrics")
 def metrics():
@@ -176,6 +194,7 @@ def rate_limit(key, limit=100, window=60):
 
     pipe.execute()
     return True
+
 
 
 
