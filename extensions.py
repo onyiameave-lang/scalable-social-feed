@@ -1,16 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy 
-from redis import Redis 
-from celery import Celery 
-from flask_migrate import Migrate 
-
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
+import redis
 
 db = SQLAlchemy()
-migrate = Migrate()
+jwt = JWTManager()
 
-def make_celery(app):
-    celery = Celery(
-        app.import_name,
-        broker = app.config["REDIS_URL"]
-    )
-    celery.conf.update(app.config)
-    return celery
+r = redis.Redis(host="localhost", port = 6379, decode_responses = True)
+

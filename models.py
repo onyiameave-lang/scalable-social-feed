@@ -38,30 +38,21 @@ class Follow(db.Model):
 
     follower_id = db.Column(
         db.Integer,
-        db.ForeignKey("users.id", ondelete="CASCADE"),
+        db.ForeignKey("users.id"),
         primary_key=True
     )
 
     following_id = db.Column(
         db.Integer,
-        db.ForeignKey("users.id", ondelete="CASCADE"),
+        db.ForeignKey("users.id"),
         primary_key=True
     )
 
 
-    created_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow
-    )
-
-    __table_args__ = (
-        db.Index("idx_following_created", "following_id", "created_at"),
-    )
-
 
 class Like(db.Model):
 
-    __tablename__ = "Likes"
+    __tablename__ = "likes"
 
     id = db.Column(
         db.Integer,
@@ -80,15 +71,9 @@ class Like(db.Model):
         nullable = False
     )
 
-    created_at = db.Column(
-        db.DateTime,
-        default = datetime.utcnow
-    )
 
-    __table_args__ = (db.UniqueConstraint(
-        'user_id',
-        'post_id',
-        name = 'unique_like'),
+    __table_args__ = (
+        db.UniqueConstraint('user_id','post_id'),
     )
 
 class Comment(db.Model):
@@ -113,14 +98,7 @@ class Comment(db.Model):
     )
 
     content = db.Column(
-        db.Text,
-        nullable = False
-    )
-
-    parent_id = db.Column(
-        db.Integer,
-        db.ForeignKey('comments.id'),
-        nullable = False
+        db.Text
     )
 
     created_at = db.Column(
